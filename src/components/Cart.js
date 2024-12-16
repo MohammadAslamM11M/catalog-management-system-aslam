@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -10,10 +11,15 @@ import {
 } from "@mui/material";
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState([
-    { id: 1, name: "Product 1", price: 50 },
-    { id: 2, name: "Product 2", price: 100 },
-  ]);
+  const location = useLocation();
+  const [cartItems, setCartItems] = useState([]);
+
+  useEffect(() => {
+    if (location.state && location.state.product) {
+      const product = location.state.product;
+      setCartItems((prevItems) => [...prevItems, product]);
+    }
+  }, [location.state]);
 
   const handlePlaceOrder = () => {
     alert("Order placed successfully!");

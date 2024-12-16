@@ -1,30 +1,39 @@
+import axios from "axios";
+
 export const API_BASE_URL =
   "https://catalog-management-system-dev-ak3ogf6zea-uc.a.run.app/cms/products";
 
 export const fetchProducts = async (page, search, category) => {
-  const params = new URLSearchParams();
+  const params = {
+    page: page > 0 ? page : 1,
+    ...(search && { search }),
+    ...(category && { category }),
+  };
 
-  params.append("page", page > 0 ? page : 1);
-  if (search) params.append("search", search);
-  if (category) params.append("category", category);
+  try {
+    const response = await axios.get(API_BASE_URL, {
+      params,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-  const url = `https://catalog-management-system-dev-ak3ogf6zea-uc.a.run.app/cms/products?${params.toString()}`;
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch products: ${response.statusText}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch products: ${error.response?.statusText || error.message}`
+    );
   }
-
-  return await response.json();
 };
 
 export const fetchProductDetails = async (id) => {
-  const response = await fetch(`${API_BASE_URL}/${id}`);
-  return response.json();
+  try {
+    const response = await axios.get(`${API_BASE_URL}/${id}`);
+    console.log("API Response:", response.data);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch product details: ${error.response?.statusText || error.message}`
+    );
+  }
 };

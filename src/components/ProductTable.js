@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import debounce from "lodash.debounce";
 import { fetchProducts } from "../services/api";
 
 const ProductTable = () => {
@@ -20,36 +21,52 @@ const ProductTable = () => {
   const [category, setCategory] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchProducts(page, search, category);
-        const mappedProducts =
-          data.products?.map((product) => ({
-            id: product.id,
-            name: product.name,
-            price: product.mrp?.mrp || 0,
-            main_category: product.main_category,
-          })) || [];
-        setProducts(mappedProducts);
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchProducts(page, "", "");
+      const mappedProducts =
+        data.products?.map((product) => ({
+          id: product.id,
+          name: product.name,
+          price: product.mrp?.mrp || 0,
+          main_category: product.main_category,
+        })) || [];
 
-        const uniqueCategories = [
-          ...new Set(mappedProducts.map((product) => product.main_category)),
-        ].filter((cat) => cat);
-        setCategories(uniqueCategories);
-      } catch (error) {
-        console.error("Failed to fetch products", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const filteredProducts = mappedProducts
+        .filter((product) =>
+          search
+            ? product.name.toLowerCase().includes(search.toLowerCase())
+            : true
+        )
+        .filter((product) =>
+          category ? product.main_category === category : true
+        );
+
+      setProducts(filteredProducts);
+
+      const uniqueCategories = [
+        ...new Set(mappedProducts.map((product) => product.main_category)),
+      ].filter((cat) => cat);
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error("Failed to fetch products", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadProducts();
   }, [page, search, category]);
 
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
+  const debouncedSearch = debounce((value) => {
+    setSearch(value);
     setPage(0);
+  }, 300);
+
+  const handleSearchChange = (e) => {
+    debouncedSearch(e.target.value);
   };
 
   const handleCategoryChange = (e) => {
@@ -81,7 +98,6 @@ const ProductTable = () => {
             fullWidth
             label="Search"
             variant="outlined"
-            value={search}
             onChange={handleSearchChange}
             sx={{ boxShadow: 1 }}
           />
@@ -128,8 +144,14 @@ const ProductTable = () => {
               ),
             },
           ]}
-          pageSize={10}
-          rowsPerPageOptions={[10]}
+          initialState={{
+            pagination: {
+              paginationModel: {
+                pageSize: 10,
+              },
+            },
+          }}
+          pageSizeOptions={[10]}
           pagination
           components={{ Toolbar: GridToolbar }}
           loading={loading}
